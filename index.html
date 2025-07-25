@@ -2,31 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daily Bible Verse + Random Worship Track</title>
 
   <style>
-    /* -------- page background -------- */
+    /* ---- background ---- */
     body{
-      font-family:Arial, sans-serif;
-      background:url('background.png') no-repeat center/cover fixed;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      min-height:100vh; margin:0; padding:20px;
+      font-family: Arial, sans-serif;
+      background: url('background.png') no-repeat center/cover fixed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
     }
 
-    /* -------- verse card -------- */
+    /* ---- verse card ---- */
     .box{
-      background:rgba(255,255,255,.85); backdrop-filter:blur(4px);
-      border-radius:16px; padding:30px 40px;
-      max-width:600px; width:100%; text-align:center;
-      box-shadow:0 6px 16px rgba(0,0,0,.1);
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(4px);
+      border-radius: 16px;
+      padding: 30px 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,.1);
     }
-    h2   {color:#1e40af; margin:0 0 20px;}
-    p    {font-size:1.3em; color:#1f2937; white-space:pre-wrap;}
-    .ref {margin-top:15px; font-weight:bold; color:#6b7280;}
-    .error{margin-top:15px; font-size:1em; color:#b91c1c;}
+    h2   { color:#1e40af; margin:0 0 20px; }
+    p    { font-size:1.3em; color:#1f2937; white-space:pre-wrap; }
+    .ref { margin-top:15px; font-weight:bold; color:#6b7280; }
+    .error{ margin-top:15px; font-size:1em; color:#b91c1c; }
 
-    /* -------- play‑music button -------- */
+    /* ---- play-music button ---- */
     #playBtn{
       position:fixed; bottom:24px; right:24px;
       background:#1db954; color:#fff; border:none;
@@ -46,60 +55,57 @@
     <div class="error" id="error"></div>
   </div>
 
-  <!-- Hidden audio element -->
+  <!-- Hidden audio -->
   <audio id="bgm" preload="auto" loop playsinline></audio>
   <button id="playBtn">Play background music</button>
 
   <script>
-    /* ---------- 1. Fetch random Bible verse ---------- */
+    /* ---------- 1. Bible verse ---------- */
     async function loadVerse(){
       const verseEl=document.getElementById("verse");
       const refEl  =document.getElementById("reference");
       const errEl  =document.getElementById("error");
       try{
-        const url="https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t="+Date.now();
-        const res=await fetch(url);
-        const data=await res.json();
-        const det =data.verse.details;
-        verseEl.textContent=det.text;
-        refEl.textContent  =det.reference;
+        const res = await fetch("https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t="+Date.now());
+        const d   = await res.json();
+        verseEl.textContent = d.verse.details.text;
+        refEl.textContent   = d.verse.details.reference;
       }catch{
-        verseEl.textContent="⚠️ Unable to load verse.";
-        errEl.textContent  ="Check connection and try again.";
+        verseEl.textContent = "⚠️ Unable to load verse.";
+        errEl.textContent   = "Check your connection and try again.";
       }
     }
     loadVerse();
 
-    /* ---------- 2. Random MP3 background ---------- */
-    const tracks=["song1.mp3","song2.mp3","song3.mp3","song4.mp3","song5.mp3"]; // adjust names
-    const chosen=tracks[Math.floor(Math.random()*tracks.length)];
+    /* ---------- 2. Random background track ---------- */
+    const tracks = ["song1.mp3","song2.mp3","song3.mp3","song4.mp3","song5.mp3"];
+    const chosen = tracks[Math.floor(Math.random()*tracks.length)];
 
-    const bgm    =document.getElementById("bgm");
-    const playBtn=document.getElementById("playBtn");
-    bgm.src=chosen;
+    const bgm     = document.getElementById("bgm");
+    const playBtn = document.getElementById("playBtn");
+    bgm.src = chosen;
 
     async function startMusic(){
       try{
-        bgm.muted=true;          // 1) allow muted autoplay
-        await bgm.play();        //    first play promise
-        await bgm.play();        //    Safari quirk (double‑call)
-        bgm.addEventListener("canplay",()=>{ bgm.muted=false; },{once:true}); // 2) un‑mute when ready
-        playBtn.style.display="none";
+        bgm.muted = true;          // 1) muted autoplay allowed
+        await bgm.play();          //    first promise
+        await bgm.play();          //    Safari double-call quirk
+        bgm.addEventListener("canplay", () => { bgm.muted = false; }, {once:true});
+        playBtn.style.display = "none";
         localStorage.setItem("bgm-ok","yes");
-      }catch(e){
-        // If browser still blocks, reveal controls so user can press ▶ directly
-        bgm.controls=true;
-        alert("Autoplay blocked. Please tap the play icon.");
+      }catch{
+        bgm.controls = true;       // fallback: let user press ▶
+        alert("Autoplay blocked. Please press play.");
       }
     }
-    playBtn.addEventListener("click",startMusic);
+    playBtn.addEventListener("click", startMusic);
 
-    /* ---------- 3. Respect previous consent ---------- */
+    /* ---------- 3. Respect prior consent ---------- */
     if(localStorage.getItem("bgm-ok")==="yes"){
-      // still need a user gesture in some browsers, so only hide button after success
-      bgm.muted=true;
-      bgm.play().then(()=>{ bgm.muted=false; playBtn.style.display="none"; })
-                 .catch(()=>{}); // silently keep button if blocked
+      bgm.muted = true;
+      bgm.play()
+        .then(()=>{ bgm.muted = false; playBtn.style.display="none"; })
+        .catch(()=>{/* keep button visible if blocked */});
     }
   </script>
 </body>
