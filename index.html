@@ -1,112 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Bible Verse + Random Worship Track</title>
-
-  <style>
-    /* ---- background ---- */
-    body{
-      font-family: Arial, sans-serif;
-      background: url('background.png') no-repeat center/cover fixed;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
+<script>
+  /* ---------- 1. Bible verse (unchanged) ---------- */
+  async function loadVerse(){
+    const verseEl=document.getElementById("verse");
+    const refEl =document.getElementById("reference");
+    const errEl =document.getElementById("error");
+    try{
+      const res=await fetch("https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t="+Date.now());
+      const d=await res.json();
+      verseEl.textContent=d.verse.details.text;
+      refEl.textContent  =d.verse.details.reference;
+    }catch{
+      verseEl.textContent="⚠️ Unable to load verse.";
+      errEl.textContent ="Check your connection and try again.";
     }
+  }
+  loadVerse();
 
-    /* ---- verse card ---- */
-    .box{
-      background: rgba(255,255,255,.85);
-      backdrop-filter: blur(4px);
-      border-radius: 16px;
-      padding: 30px 40px;
-      max-width: 600px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,.1);
-    }
-    h2   { color:#1e40af; margin:0 0 20px; }
-    p    { font-size:1.3em; color:#1f2937; white-space:pre-wrap; }
-    .ref { margin-top:15px; font-weight:bold; color:#6b7280; }
-    .error{ margin-top:15px; font-size:1em; color:#b91c1c; }
+  /* ---------- 2. Random MP3 background ---------- */
+  const tracks=["song1.mp3","song2.mp3","song3.mp3","song4.mp3","song5.mp3"];
+  const chosen=tracks[Math.floor(Math.random()*tracks.length)];
 
-    /* ---- play-music button ---- */
-    #playBtn{
-      position:fixed; bottom:24px; right:24px;
-      background:#1db954; color:#fff; border:none;
-      padding:12px 18px; font-size:15px; cursor:pointer;
-      border-radius:50px; box-shadow:0 4px 10px rgba(0,0,0,.2);
-      z-index:10;
-    }
-  </style>
-</head>
+  const bgm=document.getElementById("bgm");
+  bgm.src=chosen;
 
-<body>
-  <!-- Verse card -->
-  <div class="box">
-    <h2>Today's Verse</h2>
-    <p id="verse">Loading…</p>
-    <div class="ref"   id="reference"></div>
-    <div class="error" id="error"></div>
-  </div>
+  const playBtn=document.getElementById("playBtn");
 
-  <!-- Hidden audio -->
-  <audio id="bgm" preload="auto" loop playsinline></audio>
-  <button id="playBtn">Play background music</button>
+  /* ✨ Helper: detect Safari (needs double play) */
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-  <script>
-    /* ---------- 1. Bible verse ---------- */
-    async function loadVerse(){
-      const verseEl=document.getElementById("verse");
-      const refEl  =document.getElementById("reference");
-      const errEl  =document.getElementById("error");
-      try{
-        const res = await fetch("https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t="+Date.now());
-        const d   = await res.json();
-        verseEl.textContent = d.verse.details.text;
-        refEl.textContent   = d.verse.details.reference;
-      }catch{
-        verseEl.textContent = "⚠️ Unable to load verse.";
-        errEl.textContent   = "Check your connection and try again.";
+  async function startMusic(){
+    try{
+      bgm.muted=true;
+      await bgm.play();                // first (and only) play for most browsers
+      if(isSafari){                    // ✨ only Safari needs the second call
+        await bgm.play();
       }
+      bgm.addEventListener("canplay",()=>bgm.muted=false,{once:true});
+      playBtn.style.display="none";
+      localStorage.setItem("bgm-ok","yes");
+    }catch{
+      bgm.controls=true;
+      alert("Autoplay blocked. Press the play icon.");
     }
-    loadVerse();
+  }
+  playBtn.addEventListener("click",startMusic);
 
-    /* ---------- 2. Random background track ---------- */
-    const tracks = ["song1.mp3","song2.mp3","song3.mp3","song4.mp3","song5.mp3"];
-    const chosen = tracks[Math.floor(Math.random()*tracks.length)];
-
-    const bgm     = document.getElementById("bgm");
-    const playBtn = document.getElementById("playBtn");
-    bgm.src = chosen;
-
-    async function startMusic(){
-      try{
-        bgm.muted = true;          // 1) muted autoplay allowed
-        await bgm.play();          //    first promise
-        await bgm.play();          //    Safari double-call quirk
-        bgm.addEventListener("canplay", () => { bgm.muted = false; }, {once:true});
-        playBtn.style.display = "none";
-        localStorage.setItem("bgm-ok","yes");
-      }catch{
-        bgm.controls = true;       // fallback: let user press ▶
-        alert("Autoplay blocked. Please press play.");
-      }
-    }
-    playBtn.addEventListener("click", startMusic);
-
-    /* ---------- 3. Respect prior consent ---------- */
-    if(localStorage.getItem("bgm-ok")==="yes"){
-      bgm.muted = true;
-      bgm.play()
-        .then(()=>{ bgm.muted = false; playBtn.style.display="none"; })
-        .catch(()=>{/* keep button visible if blocked */});
-    }
-  </script>
-</body>
-</html>
+  /* ---------- 3. Try autoplay if user consented ---------- */
+  if(localStorage.getItem("bgm-ok")==="yes"){
+    bgm.muted=true;
+    bgm.play()
+      .then(()=>{ bgm.muted=false; playBtn.style.display="none"; })
+      .catch(()=>{/* keep button visible if blocked */});
+  }
+</script>
