@@ -3,101 +3,94 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Bible Verse</title>
+  <title>Daily Bible Verse with Random Worship Track</title>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: url('background.png') no-repeat center center fixed;
-      background-size: cover;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      height: 100vh;
-      margin: 0;
-      padding: 20px;
+    /* ----- background image ----- */
+    body{
+      font-family:Arial, sans-serif;
+      background:url('background.png') no-repeat center/cover fixed;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      min-height:100vh; margin:0; padding:20px;
     }
-
-    .box {
-      background: rgba(255, 255, 255, 0.85);
-      border-radius: 16px;
-      padding: 30px 40px;
-      max-width: 600px;
-      width: 100%;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-      text-align: center;
-      backdrop-filter: blur(4px);
-      margin-bottom: 20px;
+    /* ----- verse card ----- */
+    .box{
+      background:rgba(255,255,255,.85); backdrop-filter:blur(4px);
+      border-radius:16px; padding:30px 40px;
+      max-width:600px; width:100%; text-align:center;
+      box-shadow:0 6px 16px rgba(0,0,0,.1);
     }
-
-    h2 {
-      color: #1e40af;
-      margin-bottom: 20px;
-    }
-
-    p {
-      font-size: 1.3em;
-      color: #1f2937;
-      white-space: pre-wrap;
-    }
-
-    .ref {
-      margin-top: 15px;
-      font-weight: bold;
-      color: #6b7280;
-    }
-
-    .error {
-      color: #b91c1c;
-      font-size: 1em;
-      margin-top: 15px;
-    }
-
-    .spotify-player {
-      border-radius: 12px;
-      overflow: hidden;
-      width: 100%;
-      max-width: 350px;
-      height: 80px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    h2{color:#1e40af; margin:0 0 20px;}
+    p{font-size:1.3em; color:#1f2937; white-space:pre-wrap;}
+    .ref{margin-top:15px; font-weight:bold; color:#6b7280;}
+    .error{margin-top:15px; font-size:1em; color:#b91c1c;}
+    /* ----- play button ----- */
+    #playBtn{
+      position:fixed; bottom:24px; right:24px;
+      background:#1db954; color:#fff; border:none;
+      padding:12px 18px; font-size:15px; cursor:pointer;
+      border-radius:50px; box-shadow:0 4px 10px rgba(0,0,0,.2);
+      z-index:10;
     }
   </style>
 </head>
+
 <body>
+  <!-- verse card -->
   <div class="box">
     <h2>Today's Verse</h2>
-    <p id="verse">Loading...</p>
+    <p id="verse">Loading…</p>
     <div class="ref" id="reference"></div>
     <div class="error" id="error"></div>
   </div>
 
-  <!-- ✅ Spotify Embed (Change the URL to your favorite song) -->
-  <div class="spotify-player">
-    <iframe style="border:none;" src="https://open.spotify.com/embed/track/5ewo3lDdYVD6R6S77kc5xE?utm_source=generator&theme=0" width="100%" height="80" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-  </div>
+  <!-- hidden audio element -->
+  <audio id="bgm" preload="auto" loop></audio>
+  <button id="playBtn">Play background music</button>
 
   <script>
-    async function loadVerse() {
-      const verseEl = document.getElementById("verse");
-      const refEl   = document.getElementById("reference");
-      const errEl   = document.getElementById("error");
-
-      try {
-        const url = "https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t=" + Date.now();
-        const res = await fetch(url);
-        const json = await res.json();
-        const det = json.verse.details;
-
-        verseEl.textContent = det.text;
-        refEl.textContent   = det.reference;
-      } catch (e) {
-        verseEl.textContent = "⚠️ Unable to load verse.";
-        refEl.textContent = "";
-        errEl.textContent = "Please check your internet connection and try again.";
+    /* ---------- 1. Bible verse ---------- */
+    async function loadVerse(){
+      const verseEl=document.getElementById("verse");
+      const refEl=document.getElementById("reference");
+      const errEl=document.getElementById("error");
+      try{
+        const url="https://beta.ourmanna.com/api/v1/get/?format=json&order=random&t="+Date.now();
+        const res=await fetch(url);
+        const data=await res.json();
+        const det=data.verse.details;
+        verseEl.textContent=det.text;
+        refEl.textContent=det.reference;
+      }catch{
+        verseEl.textContent="⚠️ Unable to load verse.";
+        errEl.textContent="Check connection and try again.";
       }
     }
-
     loadVerse();
+
+    /* ---------- 2. Random MP3 background ---------- */
+    /* Replace these with your actual filenames */
+    const tracks=["song1.mp3","song2.mp3","song3.mp3","song4.mp3","song5.mp3"];
+    const chosen = tracks[Math.floor(Math.random()*tracks.length)];
+
+    const bgm     = document.getElementById("bgm");
+    const playBtn = document.getElementById("playBtn");
+    bgm.src = chosen;
+
+    function startMusic(){
+      bgm.play()
+        .then(()=>{
+          playBtn.style.display="none";
+          localStorage.setItem("bgm-ok","yes"); // remember consent
+        })
+        .catch(()=>alert("Browser blocked autoplay. Tap again."));
+    }
+    playBtn.addEventListener("click", startMusic);
+
+    /* Try to autoplay if user previously consented */
+    if(localStorage.getItem("bgm-ok")==="yes"){
+      bgm.play().then(()=>playBtn.style.display="none");
+    }
   </script>
 </body>
 </html>
